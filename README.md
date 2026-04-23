@@ -291,4 +291,18 @@ The system generates a 404 Not Found error when you attempt to access an endpoin
 
 **Question 5.3 — Why 403 Forbidden for MAINTENANCE Sensor**
 
-The 403 Forbidden status code is the correct one in this case because the server has refused to permit the client to perform an operation based on the current operational state of the resource. The sensor does exist and the request format was valid; however, the sensor was marked
+The 403 Forbidden status code is the correct one in this case because the server has refused to permit the client to perform an operation based on the current operational state of the resource. The sensor does exist and the request format was valid; however, the sensor was marked MAINTENANCE, which indicates that no new readings may be recorded for this sensor at this time by the system. The status clearly indicates that the client understands what they are trying to do, but cannot do it at this time based on the status of the device.
+
+---
+
+**Question 5.4 — Cybersecurity Risks of Exposing Stack Traces**
+
+The practice of disclosing complete Java stack traces which show internal system operations creates a security threat because it discloses confidential system details. A stack trace can reveal package names together with class names and method names and file names and line numbers and framework versions and elements of the system's internal structure. The system provides users with access to its complete internal data processing methods together with its data error handling techniques and its full operational framework.
+
+An attacker could use this information to learn how the system is organised, identify technologies in use, locate weak points, and craft more targeted attacks. By examining particular libraries and internal endpoint identifiers which contain specific naming patterns attackers can discover additional security vulnerabilities. The practice of returning a generic 500 Internal Server Error response without any trace information provides better security because it prevents external users from accessing vital implementation details.
+
+---
+
+**Question 5.5 — Filters vs Manual Logging**
+
+The use of JAX-RS filters for logging purposes proves to be superior because logging functions as a cross-cutting concern that affects all API components instead of being limited to a single resource method. The filters enable centralized control of logging functions through a single implementation which prevents developers from needing to implement duplicate logging code in multiple project areas. The system provides three main benefits which include maintaining cleaner resource methods that focus on executing business logic and achieving uniform logging practices across all system endpoints and simplifying maintenance tasks by requiring implementation of logging format changes in only one dedicated class instead of multiple resource methods. The application of filters leads to improvements in code quality which establishes consistent patterns that enhance system maintainability.

@@ -98,3 +98,51 @@ Expected: `200 OK` with API metadata and navigational links.
 curl -X POST http://localhost:8080/api/v1/rooms \
   -H "Content-Type: application/json" \
   -d '{
+  "id": "ENG-101",
+  "name": "Engineering Lab",
+  "capacity": 60
+}'
+```
+
+Expected: `201 Created` with a `Location` header pointing to the new resource.
+
+**3. Register a new sensor — POST /api/v1/sensors**
+
+```bash
+curl -X POST http://localhost:8080/api/v1/sensors \
+  -H "Content-Type: application/json" \
+  -d '{
+  "id": "CO2-001",
+  "type": "CO2",
+  "status": "ACTIVE",
+  "currentValue": 450.0,
+  "roomId": "LIB-301"
+}'
+```
+
+Expected: `201 Created`. If `roomId` does not exist, returns `422 Unprocessable Entity`.
+
+**4. Get filtered sensor list — GET /api/v1/sensors?type=Temperature**
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/sensors?type=Temperature" \
+  -H "Accept: application/json"
+```
+
+Expected: `200 OK` with only Temperature sensors in the list.
+
+**5. Post a new sensor reading — POST /api/v1/sensors/TEMP-001/readings**
+
+```bash
+curl -X POST http://localhost:8080/api/v1/sensors/TEMP-001/readings \
+  -H "Content-Type: application/json" \
+  -d '{
+  "id": "R2",
+  "timestamp": 1714000000000,
+  "value": 23.7
+}'
+```
+
+Expected: `201 Created`. The parent sensor's `currentValue` is updated to `23.7`.
+
+**6. Delete a room with no sensors — DELETE /api/v1/rooms/ENG-101**

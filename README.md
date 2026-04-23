@@ -190,3 +190,32 @@ Expected: `500 Internal Server Error` with a clean JSON body and no Java stack t
 | POST | `/api/v1/sensors` | Register a new sensor |
 | GET | `/api/v1/sensors/{sensorId}/readings` | Get reading history for a sensor |
 | POST | `/api/v1/sensors/{sensorId}/readings` | Add a new reading for a sensor |
+| GET | `/api/v1/debug/crash` | Trigger 500 global error handler (demo only) |
+
+---
+
+## HTTP Status Codes Used
+
+| Code | Meaning | When Used |
+| --- | --- | --- |
+| 200 | OK | Successful GET or DELETE |
+| 201 | Created | Successful POST (includes Location header) |
+| 400 | Bad Request | Missing or invalid fields in request body |
+| 403 | Forbidden | POST reading to a MAINTENANCE sensor |
+| 404 | Not Found | Resource does not exist |
+| 409 | Conflict | DELETE room with assigned sensors / duplicate ID |
+| 415 | Unsupported Media Type | Wrong Content-Type sent to endpoint |
+| 422 | Unprocessable Entity | Valid JSON but referenced roomId does not exist |
+| 500 | Internal Server Error | Unhandled runtime exception |
+
+---
+
+## Report
+
+### Part 1 — Service Architecture & Setup
+
+**Question 1.1 — JAX-RS Resource Lifecycle**
+
+The default request scope of JAX-RS resource classes requires active resource instances to handle their incoming requests which results in the creation of new resource instances for every request that they receive. The system operates this way because request-based information stored in a resource object remains available only to the current user session. The resource instance fields need to be avoided as primary storage locations for application data because these fields do not maintain reliable data storage throughout multiple user sessions. The team needs to store persistent shared state storage for rooms and sensors and sensor readings which they achieve through the shared static DataStore class that provides in-memory storage through ConcurrentHashMap and synchronized ArrayList instead of using resource instance fields. The system needs to manage concurrent access because multiple requests currently use the same shared collections. The system experiences race conditions or inconsistent updates when two requests try to modify the same shared data simultaneously. The system implements its entire operations with thread-safe structures which operate through ConcurrentHashMap and Collections.synchronizedList.
+
+**Question 1.2 — HATEOAS and Hypermedia**

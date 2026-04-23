@@ -146,3 +146,47 @@ curl -X POST http://localhost:8080/api/v1/sensors/TEMP-001/readings \
 Expected: `201 Created`. The parent sensor's `currentValue` is updated to `23.7`.
 
 **6. Delete a room with no sensors — DELETE /api/v1/rooms/ENG-101**
+
+```bash
+curl -X DELETE http://localhost:8080/api/v1/rooms/ENG-101
+```
+
+Expected: `200 OK`. If the room has sensors assigned, returns `409 Conflict`.
+
+**7. Attempt reading on a MAINTENANCE sensor — POST /api/v1/sensors/TEMP-999/readings**
+
+```bash
+curl -X POST http://localhost:8080/api/v1/sensors/TEMP-999/readings \
+  -H "Content-Type: application/json" \
+  -d '{
+  "id": "R100",
+  "timestamp": 1714000000000,
+  "value": 19.5
+}'
+```
+
+Expected: `403 Forbidden` with a structured JSON error body.
+
+**8. Trigger the global 500 handler — GET /api/v1/debug/crash**
+
+```bash
+curl -X GET http://localhost:8080/api/v1/debug/crash
+```
+
+Expected: `500 Internal Server Error` with a clean JSON body and no Java stack trace.
+
+---
+
+## API Endpoints Reference
+
+| Method | Path | Description |
+| --- | --- | --- |
+| GET | `/api/v1` | Discovery — API metadata and HATEOAS links |
+| GET | `/api/v1/rooms` | List all rooms |
+| POST | `/api/v1/rooms` | Create a new room |
+| GET | `/api/v1/rooms/{roomId}` | Get a specific room |
+| DELETE | `/api/v1/rooms/{roomId}` | Delete a room (blocked if sensors assigned) |
+| GET | `/api/v1/sensors` | List all sensors (optional `?type=` filter) |
+| POST | `/api/v1/sensors` | Register a new sensor |
+| GET | `/api/v1/sensors/{sensorId}/readings` | Get reading history for a sensor |
+| POST | `/api/v1/sensors/{sensorId}/readings` | Add a new reading for a sensor |

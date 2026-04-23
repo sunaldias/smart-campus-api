@@ -214,11 +214,11 @@ Expected: `500 Internal Server Error` with a clean JSON body and no Java stack t
 
 ### Part 1 - Service Architecture & Setup
 
-**Question 1.1 - JAX-RS Resource Lifecycle**
+**Question 1.1 - Explain the default lifecycle of a JAX-RS Resource class. Is a new instance instantiated for every incoming request, or does the runtime treat it as a singleton? Elaborate on how this architectural decision impacts the way you manage and synchronize your in-memory data structures (maps/lists) to prevent data loss or race conditions.**
 
 The default request scope of JAX-RS resource classes requires active resource instances to handle their incoming requests which results in the creation of new resource instances for every request that they receive. The system operates this way because request-based information stored in a resource object remains available only to the current user session. The resource instance fields need to be avoided as primary storage locations for application data because these fields do not maintain reliable data storage throughout multiple user sessions. The team needs to store persistent shared state storage for rooms and sensors and sensor readings which they achieve through the shared static DataStore class that provides in-memory storage through ConcurrentHashMap and synchronized ArrayList instead of using resource instance fields. The system needs to manage concurrent access because multiple requests currently use the same shared collections. The system experiences race conditions or inconsistent updates when two requests try to modify the same shared data simultaneously. The system implements its entire operations with thread-safe structures which operate through ConcurrentHashMap and Collections.synchronizedList.
 
-**Question 1.2 — HATEOAS and Hypermedia**
+**Question 1.2 — Why is the provision of Hypermedia (links and navigation within responses) considered a hallmark of advanced RESTful design (HATEOAS)? How does this approach benefit client developers compared to static documentation?**
 
 The advanced RESTful design depends on hypermedia because it allows servers to use web links from their response body content to guide clients through their APIs. The API system enables clients to access room links and sensor links and nested reading links without requiring them to manually enter every endpoint from the documentation.
 The API system provides client developers with this advantage because it simplifies their process of learning the API and using it in the right way. The system decreases its need for unchanging documentation which becomes obsolete with time. The system provides enhanced flexibility because the server can release new navigation links whenever resource paths or structures undergo changes without needing clients to undergo complete rewriting. The system improves three areas which include discoverability usability and adaptability through its hypermedia system.
@@ -227,13 +227,13 @@ The API system provides client developers with this advantage because it simplif
 
 ### Part 2 — Room Management
 
-**Question 2.1 — Returning IDs vs Full Room Objects**
+**Question 2.1 — When returning a list of rooms, what are the implications of returning only IDs versus returning the full room objects? Consider network bandwidth and client-side processing.**
 
 The system will return only room IDs because this approach minimizes response size which enables better network bandwidth preservation that becomes essential when multiple rooms exist or clients require only basic room details. The present system structure forces clients to perform additional tasks because they must submit multiple requests to obtain complete room details. The client benefits from receiving complete room objects because all required details come in one single response. The system reduces request requirements while decreasing client effort needed to complete their work. The response size increases through this process which results in higher bandwidth consumption. Lightweight references need ID returns to function properly while clients need complete object delivery to access detailed room data.
 
 ---
 
-**Question 2.2 — Idempotency of DELETE**
+**Question 2.2 — Is the DELETE operation idempotent in your implementation? Provide a detailed justification by describing what happens if a client mistakenly sends the exact same DELETE request for a room multiple times.**
 
 Yes, the DELETE operation demonstrates idempotent behavior. Idempotency establishes that sending the identical request multiple times will result in the system reaching the same final state which results from sending it one time. The system will delete the room through its first successful DELETE request because the room contains no active sensors. The API shows 404 Not Found because the room has been deleted when the same DELETE request was sent again. The system state has not changed because the response code differs from the first request because the room remains missing. The operation shows idempotent behavior because repeated identical DELETE requests only permit one system change which happens during the first deletion.
 
@@ -241,7 +241,7 @@ Yes, the DELETE operation demonstrates idempotent behavior. Idempotency establis
 
 ### Part 3 — Sensor Operations & Linking
 
-**Question 3.1 — @Consumes and Content-Type Mismatch**
+**Question 3.1 — We explicitly use the @Consumes(MediaType.APPLICATION_JSON) annotation on the POST method. Explain the technical consequences if a client attempts to send data in a different format, such as text/plain or application/xml. How does JAX-RS handle this mismatch?**
 
 The method can receive JSON request bodies through the `@Consumes(MediaType.APPLICATION_JSON)` annotation which JAX-RS uses to define this restriction. The JAX-RS framework needs to find an appropriate message body reader when clients send data that has a content type different from text/plain or application/xml. The framework will not accept the request when there is no suitable reader for the method.
 
@@ -249,7 +249,7 @@ JAX-RS most often responds to requests with the `HTTP 415 Unsupported Media Type
 
 ---
 
-**Question 3.2 — @QueryParam vs Path Parameter for Filtering**
+**Question 3.2 — You implemented this filtering using @QueryParam. Contrast this with an alternative  design  where  the  type  is  part  of  the  URL  path  (e.g. /api/v1/sensors/type/CO2). Why is the query parameter approach generally considered superior for filtering and searching collections?**
 
 The API request for `/api/v1/sensors?type=CO2` provides better filtering results because it shows that users want to see the same sensor data with particular filters applied. The system provides users with additional filtering capabilities while keeping its primary resource access point intact. The path `/api/v1/sensors/type/CO2` creates the appearance of a new nested resource which exists apart from the sensors collection. Users can combine multiple filters through query parameters because they permit users to create complex filter combinations like `?type=CO2&status=ACTIVE`. The system provides content search and filtering capabilities to users but path parameters become essential for users who need to access specific resources.
 
@@ -257,52 +257,31 @@ The API request for `/api/v1/sensors?type=CO2` provides better filtering results
 
 ### Part 4 — Deep Nesting with Sub-Resources
 
-**Question 4.1 — Architectural Benefits of Sub-Resource Locator Pattern**
+**Question 4.1 — 7.	Discuss the architectural benefits of the Sub-Resource Locator pattern. How does delegating logic to separate classes help manage complexity in large APIs compared to defining every nested path (e.g., sensors/{id}/readings/{rid}) in one massive controller class?**
 
-The Sub-Resource Locator pattern improves API design because it enables developers to build distinct resource management controllers which function as dedicated resource subclasses. The SensorResource component controls all sensor operations from its central hub. The system sends requests for `/{sensorId}/readings` to a dedicated SensorReadingResource which handles those requests.
+The Sub-Resource Locator pattern improves API design because it enables developers to build distinct resource management controllers which function as dedicated resource subclasses. The SensorResource component controls all sensor operations from its central hub. The system sends requests for /{sensorId}/readings to a dedicated SensorReadingResource which handles those requests.
 
 The method offers multiple advantages to users. The method enhances separation of concerns through resource classes that design their systems to handle one specific duty. The second benefit stems from the fact that the main sensor controller remains unaffected by nested reading logic which keeps code clear and understandable. The process of expanding the API becomes more efficient because SensorReadingResource can manage additional reading tasks without requiring SensorResource to become an unmanageable central controlling system. The modular design of extensive application programming interfaces reduces operational complexity while improving systems maintenance capabilities.
 
----
-
-**Question 4.2 — Importance of Updating currentValue**
-
-Updating the parent sensor’s currentValue after the successful posting of a reading is key to maintaining consistency within the API. The readings collection provides a historical archive of readings taken from sensors, while the currentValue indicates what the most recent state of the sensor has been.
-
-When a new reading is created but currentValue hasn’t been updated yet, there is an inconsistency in the data provided by the API (current state of the sensor vs. the history of the sensor). Updating currentValue at the moment the new reading is created allows the API to ensure that there is consistency between what is returned today through the currentValue property and previous historical readings returned through the readings property.
 
 ---
 
 ### Part 5 — Advanced Error Handling, Exception Mapping & Logging
 
-**Question 5.1 — Why 409 Conflict for Room Deletion**
+**Question 5.1 — 8.	Why is HTTP 422 often considered more semantically accurate than a standard 404 when the issue is a missing reference inside a valid JSON payload?**
 
-The room is available to be deleted but was not deleted because of the existing business rules related to no room with sensors can be deleted. Therefore, the 409 conflict error code was generated by the state of the resource rather than the request format being invalid.
+The HTTP 422 Unprocessable Entity status code better describes the situation because the request meets all three requirements which include correct syntax, existing endpoint, and parsable JSON, yet the server shows inability to process because one payload value has a logical error. The 404 Not Found error code becomes less accurate because the user tries to create a new sensor with a roomId that does not exist instead of requesting a missing URL resource. The use of 422 demonstrates that the request format matched the required standards but the payload failed to include a valid or accessible dependency which caused the error. 
+---
+
+**Question 5.2 — From a cybersecurity standpoint, explain the risks associated with exposing internal Java stack traces to external API consumers. What specific information could an attacker gather from such a trace?**
+
+The practice of disclosing internal Java stack traces creates a cybersecurity threat because attackers can use it to obtain confidential information about how the system functions. An attacker can obtain information that includes package names and class names and method names and file paths and framework details and library version numbers and the specific line number where the fault happened. The system may utilize stack traces to display both backend logic and system design elements in some instances. The attackers use the obtained information to build system models which they use to discover weaknesses and develop targeted attacks against current security vulnerabilities. The practice of returning sanitized JSON error responses instead of exposing raw stack traces enhances API security through reduced information disclosure.
 
 ---
 
-**Question 5.2 — Why 422 is More Accurate Than 404**
-
-The HTTP status code 422, "Unprocessable Entity" provides a better semantic description of the client's request which he submitted to an appropriate endpoint through which he sent a valid JSON request but he made a logically invalid request because it included an invalid roomId. The server could understand the request but it failed to handle the request because of this particular problem.
-
-The system generates a 404 Not Found error when you attempt to access an endpoint or resource that has been discontinued. Your request body incorrectly references the existing endpoint at /api/v1/sensors which does exist. The system generates the error code 422 Unprocessable Entity because of this circumstance.
-
----
-
-**Question 5.3 — Why 403 Forbidden for MAINTENANCE Sensor**
-
-The 403 Forbidden status code is the correct one in this case because the server has refused to permit the client to perform an operation based on the current operational state of the resource. The sensor does exist and the request format was valid; however, the sensor was marked MAINTENANCE, which indicates that no new readings may be recorded for this sensor at this time by the system. The status clearly indicates that the client understands what they are trying to do, but cannot do it at this time based on the status of the device.
-
----
-
-**Question 5.4 — Cybersecurity Risks of Exposing Stack Traces**
+**Question 5.3 — Why is it advantageous to use JAX-RS filters for cross-cutting concerns like logging, rather than manually inserting Logger.info() statements inside every single resource method?**
 
 The practice of disclosing complete Java stack traces which show internal system operations creates a security threat because it discloses confidential system details. A stack trace can reveal package names together with class names and method names and file names and line numbers and framework versions and elements of the system's internal structure. The system provides users with access to its complete internal data processing methods together with its data error handling techniques and its full operational framework.
 
 An attacker could use this information to learn how the system is organised, identify technologies in use, locate weak points, and craft more targeted attacks. By examining particular libraries and internal endpoint identifiers which contain specific naming patterns attackers can discover additional security vulnerabilities. The practice of returning a generic 500 Internal Server Error response without any trace information provides better security because it prevents external users from accessing vital implementation details.
 
----
-
-**Question 5.5 — Filters vs Manual Logging**
-
-The use of JAX-RS filters for logging purposes proves to be superior because logging functions as a cross-cutting concern that affects all API components instead of being limited to a single resource method. The filters enable centralized control of logging functions through a single implementation which prevents developers from needing to implement duplicate logging code in multiple project areas. The system provides three main benefits which include maintaining cleaner resource methods that focus on executing business logic and achieving uniform logging practices across all system endpoints and simplifying maintenance tasks by requiring implementation of logging format changes in only one dedicated class instead of multiple resource methods. The application of filters leads to improvements in code quality which establishes consistent patterns that enhance system maintainability.

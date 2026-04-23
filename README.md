@@ -212,10 +212,33 @@ Expected: `500 Internal Server Error` with a clean JSON body and no Java stack t
 
 ## Report
 
-### Part 1 — Service Architecture & Setup
+### Part 1 - Service Architecture & Setup
 
-**Question 1.1 — JAX-RS Resource Lifecycle**
+**Question 1.1 - JAX-RS Resource Lifecycle**
 
 The default request scope of JAX-RS resource classes requires active resource instances to handle their incoming requests which results in the creation of new resource instances for every request that they receive. The system operates this way because request-based information stored in a resource object remains available only to the current user session. The resource instance fields need to be avoided as primary storage locations for application data because these fields do not maintain reliable data storage throughout multiple user sessions. The team needs to store persistent shared state storage for rooms and sensors and sensor readings which they achieve through the shared static DataStore class that provides in-memory storage through ConcurrentHashMap and synchronized ArrayList instead of using resource instance fields. The system needs to manage concurrent access because multiple requests currently use the same shared collections. The system experiences race conditions or inconsistent updates when two requests try to modify the same shared data simultaneously. The system implements its entire operations with thread-safe structures which operate through ConcurrentHashMap and Collections.synchronizedList.
 
 **Question 1.2 — HATEOAS and Hypermedia**
+
+The advanced RESTful design depends on hypermedia because it allows servers to use web links from their response body content to guide clients through their APIs. The API system enables clients to access room links and sensor links and nested reading links without requiring them to manually enter every endpoint from the documentation.
+The API system provides client developers with this advantage because it simplifies their process of learning the API and using it in the right way. The system decreases its need for unchanging documentation which becomes obsolete with time. The system provides enhanced flexibility because the server can release new navigation links whenever resource paths or structures undergo changes without needing clients to undergo complete rewriting. The system improves three areas which include discoverability usability and adaptability through its hypermedia system.
+
+---
+
+### Part 2 — Room Management
+
+**Question 2.1 — Returning IDs vs Full Room Objects**
+
+The system will return only room IDs because this approach minimizes response size which enables better network bandwidth preservation that becomes essential when multiple rooms exist or clients require only basic room details. The present system structure forces clients to perform additional tasks because they must submit multiple requests to obtain complete room details. The client benefits from receiving complete room objects because all required details come in one single response. The system reduces request requirements while decreasing client effort needed to complete their work. The response size increases through this process which results in higher bandwidth consumption. Lightweight references need ID returns to function properly while clients need complete object delivery to access detailed room data.
+
+---
+
+**Question 2.2 — Idempotency of DELETE**
+
+Yes, the DELETE operation demonstrates idempotent behavior. Idempotency establishes that sending the identical request multiple times will result in the system reaching the same final state which results from sending it one time. The system will delete the room through its first successful DELETE request because the room contains no active sensors. The API shows 404 Not Found because the room has been deleted when the same DELETE request was sent again. The system state has not changed because the response code differs from the first request because the room remains missing. The operation shows idempotent behavior because repeated identical DELETE requests only permit one system change which happens during the first deletion.
+
+---
+
+### Part 3 — Sensor Operations & Linking
+
+**Question 3.1 — @Consumes and Content-Type Mismatch**

@@ -1,0 +1,13 @@
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS generated files
+.DS_Store

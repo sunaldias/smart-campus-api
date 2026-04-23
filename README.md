@@ -242,3 +242,23 @@ Yes, the DELETE operation demonstrates idempotent behavior. Idempotency establis
 ### Part 3 — Sensor Operations & Linking
 
 **Question 3.1 — @Consumes and Content-Type Mismatch**
+
+The method can receive JSON request bodies through the `@Consumes(MediaType.APPLICATION_JSON)` annotation which JAX-RS uses to define this restriction. The JAX-RS framework needs to find an appropriate message body reader when clients send data that has a content type different from text/plain or application/xml. The framework will not accept the request when there is no suitable reader for the method.
+
+JAX-RS most often responds to requests with the `HTTP 415 Unsupported Media Type` status. The client selected an invalid content type which the endpoint cannot handle therefore this solution is suitable. The system blocks the API from processing any formats which it cannot handle or which it did not expect.
+
+---
+
+**Question 3.2 — @QueryParam vs Path Parameter for Filtering**
+
+The API request for `/api/v1/sensors?type=CO2` provides better filtering results because it shows that users want to see the same sensor data with particular filters applied. The system provides users with additional filtering capabilities while keeping its primary resource access point intact. The path `/api/v1/sensors/type/CO2` creates the appearance of a new nested resource which exists apart from the sensors collection. Users can combine multiple filters through query parameters because they permit users to create complex filter combinations like `?type=CO2&status=ACTIVE`. The system provides content search and filtering capabilities to users but path parameters become essential for users who need to access specific resources.
+
+---
+
+### Part 4 — Deep Nesting with Sub-Resources
+
+**Question 4.1 — Architectural Benefits of Sub-Resource Locator Pattern**
+
+The Sub-Resource Locator pattern improves API design because it enables developers to build distinct resource management controllers which function as dedicated resource subclasses. The SensorResource component controls all sensor operations from its central hub. The system sends requests for `/{sensorId}/readings` to a dedicated SensorReadingResource which handles those requests.
+
+The method offers multiple advantages to users. The method enhances separation of concerns through resource classes that design their systems to handle one specific duty. The second benefit stems from the fact that the main sensor controller remains unaffected by nested reading logic which keeps code clear and understandable. The process of expanding the API becomes more efficient because SensorReadingResource can manage additional reading tasks without requiring SensorResource to become an unmanageable central controlling system. The modular design of extensive application programming interfaces reduces operational complexity while improving systems maintenance capabilities.
